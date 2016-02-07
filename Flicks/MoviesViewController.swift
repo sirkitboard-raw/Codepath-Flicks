@@ -15,20 +15,27 @@ class MoviesViewController: UIViewController, UICollectionViewDataSource, UIColl
     var data:[NSDictionary]?
     
     @IBOutlet weak var moviesLayout: UICollectionViewFlowLayout!
-    @IBOutlet weak var searchBar: UISearchBar!
     @IBOutlet weak var moviesCollection: UICollectionView!
+    @IBOutlet weak var networkErrorLabel: UILabel!
     
     let refreshControl = UIRefreshControl()
     
     var filteredData : [NSDictionary]?
     
+    var searchBar:UISearchBar = UISearchBar(frame: CGRectMake(0, 0, 0, 00))
+    
+    var endpoint : String?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
-        super.viewDidLoad()
+        
         moviesCollection.dataSource = self
         moviesCollection.delegate = self;
         searchBar.delegate = self
+        
+        searchBar.placeholder = "Search..."
+                self.navigationItem.titleView = searchBar
         
         
         
@@ -43,6 +50,16 @@ class MoviesViewController: UIViewController, UICollectionViewDataSource, UIColl
         loadMovies()
     }
     
+    override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(true)
+        self.tabBarController?.tabBar.hidden = false
+    }
+    
+    @IBAction func onTap(sender: AnyObject) {
+        searchBar.endEditing(false)
+    }
+
+    
     func refreshControlAction(refreshControl: UIRefreshControl) {
         let _ = MBProgressHUD.showHUDAddedTo(self.moviesCollection, animated: true)
         loadMovies()
@@ -55,7 +72,7 @@ class MoviesViewController: UIViewController, UICollectionViewDataSource, UIColl
 
     func loadMovies() {
         let apiKey = "a07e22bc18f5cb106bfe4cc1f83ad8ed"
-        let url = NSURL(string: "https://api.themoviedb.org/3/movie/now_playing?api_key=\(apiKey)")
+        let url = NSURL(string: "https://api.themoviedb.org/3/movie/\(self.endpoint!)?api_key=\(apiKey)")
         let request = NSURLRequest(
             URL: url!,
             cachePolicy: NSURLRequestCachePolicy.ReloadIgnoringLocalCacheData,
@@ -79,14 +96,16 @@ class MoviesViewController: UIViewController, UICollectionViewDataSource, UIColl
                             MBProgressHUD.hideAllHUDsForView(self.moviesCollection, animated: true)
                             self.refreshControl.endRefreshing()
                     }
+                } else {
+                    self.networkErrorLabel.hidden = false
                 }
         })
         task.resume()
     }
     
-    @IBAction func onTap(sender: AnyObject) {
-        view.endEditing(false)
-    }
+//    @IBAction func onTap(sender: AnyObject) {
+//        view.endEditing(false)
+//    }
     func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         if filteredData != nil {
             return filteredData!.count
@@ -117,7 +136,6 @@ class MoviesViewController: UIViewController, UICollectionViewDataSource, UIColl
                     }
                 }, failure: { (imageRequest, imageResponse, error) -> Void in })
         }
-
         
         return cell
     }
@@ -156,4 +174,11 @@ class MoviesViewController: UIViewController, UICollectionViewDataSource, UIColl
         moviesCollection.reloadData()
     }
 
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        let vc = segue.destinationViewController as! MovieDetailViewController
+        let indexPath = moviesCollection.indexPathForCell(sender as! UICollectionViewCell)
+        let photo = filteredData?[indexPath!.row]
+        vc.movie = photo
+    }
+    
 }
